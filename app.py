@@ -47,7 +47,6 @@ def init_db():
     except sqlite3.OperationalError:
         pass
         
-    # สร้างหรืออัปเดตบัญชีแอดมินหลักให้อัตโนมัติ (admin / admin123)
     admin_user = conn.execute("SELECT * FROM users WHERE username = 'admin'").fetchone()
     if not admin_user:
         conn.execute('INSERT INTO users (username, password, display_name, is_admin) VALUES (?, ?, ?, ?)',
@@ -58,8 +57,49 @@ def init_db():
     conn.commit()
     conn.close()
 
-# เรียกใช้งาน init_db() ทันทีที่โหลดไฟล์ เพื่อป้องกันปัญหาตารางไม่พบเวลาขึ้นคลาวด์
 init_db()
+
+# --- ประกาศ navbar_html ไว้ด้านบนสุดก่อนที่จะถูกนำไปเรียกใช้งานในหน้า HTML ต่างๆ ---
+navbar_html = '''
+<div style="background: linear-gradient(135deg, #2c3e50, #34495e); padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; color: white; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); flex-wrap: wrap; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(255,255,255,0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            💰
+        </div>
+        <div>
+            <div style="font-size: 13px; color: #bdc3c7;">ระบบจัดการการเงิน</div>
+            <div style="font-weight: bold; font-size: 14px;">ส่วนบุคคล</div>
+        </div>
+    </div>
+
+    <div style="text-align: center; flex: 1; min-width: 200px;">
+        <div style="font-weight: bold; font-size: 18px; letter-spacing: 0.5px; color: #ecf0f1;">ระบบบันทึกรายรับ-รายจ่าย</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); padding: 6px 14px; border-radius: 30px;">
+            {% if user and user.profile_img %}
+                <img src="{{ user.profile_img }}" alt="Avatar" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid #3498db;">
+            {% else %}
+                <div style="width: 35px; height: 35px; border-radius: 50%; background: #3498db; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">{{ user.display_name[0] if user and user.display_name else 'U' }}</div>
+            {% endif %}
+            <span style="font-size: 13px; font-weight: 500;">{{ user.display_name if user else 'ผู้ใช้งาน' }}</span>
+        </div>
+
+        <div style="display: flex; gap: 6px; align-items: center;">
+            <a href="{{ url_for('index') }}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">🏠 หน้าแรก</a>
+            <a href="{{ url_for('report') }}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">📊 รายงาน</a>
+            <a href="{{ url_for('profile') }}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">⚙️ ตั้งค่า</a>
+            
+            {% if user and user.is_admin == 1 %}
+                <a href="{{ url_for('admin_users') }}" style="color: white; text-decoration: none; background: #e67e22; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: bold;">👑 จัดการระบบ</a>
+            {% endif %}
+            
+            <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none; background: #e74c3c; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">🚪 ออก</a>
+        </div>
+    </div>
+</div>
+'''
 
 @app.route('/')
 def index():
@@ -371,47 +411,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-navbar_html = '''
-<div style="background: linear-gradient(135deg, #2c3e50, #34495e); padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; color: white; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); flex-wrap: wrap; gap: 15px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="background: rgba(255,255,255,0.15); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-            💰
-        </div>
-        <div>
-            <div style="font-size: 13px; color: #bdc3c7;">ระบบจัดการการเงิน</div>
-            <div style="font-weight: bold; font-size: 14px;">ส่วนบุคคล</div>
-        </div>
-    </div>
-
-    <div style="text-align: center; flex: 1; min-width: 200px;">
-        <div style="font-weight: bold; font-size: 18px; letter-spacing: 0.5px; color: #ecf0f1;">ระบบบันทึกรายรับ-รายจ่าย</div>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); padding: 6px 14px; border-radius: 30px;">
-            {% if user and user.profile_img %}
-                <img src="{{ user.profile_img }}" alt="Avatar" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid #3498db;">
-            {% else %}
-                <div style="width: 35px; height: 35px; border-radius: 50%; background: #3498db; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">{{ user.display_name[0] if user and user.display_name else 'U' }}</div>
-            {% endif %}
-            <span style="font-size: 13px; font-weight: 500;">{{ user.display_name if user else 'ผู้ใช้งาน' }}</span>
-        </div>
-
-        <div style="display: flex; gap: 6px; align-items: center;">
-            <a href="{{ url_for('index') }}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">🏠 หน้าแรก</a>
-            <a href="{{ url_for('report') }}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">📊 รายงาน</a>
-            <a href="{{ url_for('profile') }}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">⚙️ ตั้งค่า</a>
-            
-            {% if user and user.is_admin == 1 %}
-                <a href="{{ url_for('admin_users') }}" style="color: white; text-decoration: none; background: #e67e22; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: bold;">👑 จัดการระบบ</a>
-            {% endif %}
-            
-            <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none; background: #e74c3c; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;">🚪 ออก</a>
-        </div>
-    </div>
-</div>
-'''
-
 html_index = '''
 <!DOCTYPE html>
 <html lang="th">
@@ -561,8 +560,6 @@ html_admin_users = '''
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #e1e8ed; padding: 10px; text-align: left; font-size: 13px; }
         th { background-color: #2c3e50; color: white; }
-        .badge-admin { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .badge-user { background: #3498db; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
         .avatar-sm { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; }
         .form-box { background: #fdfdfd; border: 1px solid #e1e8ed; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
         input, button { padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; }
@@ -784,16 +781,18 @@ html_report = '''
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 950px; margin: auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .filter-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; }
+        .filter-box { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .summary-box { display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border: 1px solid #ddd; border-radius: 8px; flex-wrap: wrap; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #e1e8ed; padding: 12px; text-align: left; font-size: 14px; }
         th { background-color: #f8f9fa; color: #2c3e50; }
         .text-income { color: #27ae60; font-weight: bold; }
         .text-expense { color: #c0392b; font-weight: bold; }
-        .btn-print { background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-print { background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-print:hover { background-color: #219653; }
         @media print {
             body { background: white; padding: 0; }
-            .container { box-shadow: none; padding: 0; }
+            .container { box-shadow: none; padding: 0; max-width: 100%; }
             .no-print { display: none !important; }
         }
     </style>
@@ -810,7 +809,7 @@ html_report = '''
         <form method="GET" class="filter-box no-print">
             <div>
                 <label>เลือกเดือน:</label>
-                <select name="month">
+                <select name="month" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
                     <option value="01" {{ 'selected' if selected_month == '01' }}>มกราคม</option>
                     <option value="02" {{ 'selected' if selected_month == '02' }}>กุมภาพันธ์</option>
                     <option value="03" {{ 'selected' if selected_month == '03' }}>มีนาคม</option>
@@ -827,13 +826,13 @@ html_report = '''
             </div>
             <div>
                 <label>ปี (ค.ศ.):</label>
-                <input type="text" name="year" value="{{ selected_year }}" style="width: 80px; padding: 8px;">
+                <input type="text" name="year" value="{{ selected_year }}" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
             </div>
-            <button type="submit" style="padding: 9px 15px; background: #3498db; color:white; border:none; border-radius:4px; cursor:pointer;">ค้นหา</button>
+            <button type="submit" style="padding: 9px 15px; background: #3498db; color:white; border:none; border-radius:4px; cursor:pointer; font-weight: bold;">ค้นหา</button>
             <button type="button" onclick="window.print()" class="btn-print">🖨️ พิมพ์รายงาน / บันทึก PDF</button>
         </form>
 
-        <div style="display: flex; gap: 20px; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+        <div class="summary-box">
             <div>รายรับรวมเดือนนี้: <span class="text-income">{{ "%.2f"|format(rep_income) }} ฿</span></div>
             <div>รายจ่ายรวมเดือนนี้: <span class="text-expense">{{ "%.2f"|format(rep_expense) }} ฿</span></div>
             <div>คงเหลือสุทธิ: <b>{{ "%.2f"|format(rep_balance) }} ฿</b></div>
